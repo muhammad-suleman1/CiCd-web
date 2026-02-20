@@ -1,0 +1,44 @@
+name: Static Site CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Check HTML exists
+        run: |
+          if [ ! -f index.html ]; then
+            echo "index.html missing!"
+            exit 1
+          fi
+
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /var/www/static-site || mkdir -p /var/www/static-site
+            cd /var/www/static-site
+            git clone https://github.com/YOUR_USERNAME/static-cicd-project.git temp || true
+            rm -rf *
+            mv temp/* .
+            rm -rf temp
+            echo "Deployment complete!"
